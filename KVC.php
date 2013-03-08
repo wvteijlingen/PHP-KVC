@@ -108,12 +108,32 @@ class KVC {
 	protected function _getValueForKey($subject, $key) {
 		$value = null;
 
+		//Array type
 		if(is_array($subject)) {
-			$value = $subject[$key];
+			if(array_key_exists($key, $subject) ) {
+				$value = $subject[$key];
+			} else {
+				throw new Exception('Key ' . $key . ' not found on array ' . $subject . '.');
+			}
+
+		//Object type
 		} elseif(is_object($subject)) {
-			$value = $subject->$key();
+
+			//Variable
+			if(property_exists($subject, $key)) {
+				$value = $subject->$key;
+
+			//Getter
+			} elseif(method_exists($subject, 'get' . ucfirst($key) ) ) {
+				$getter = 'get' . ucfirst($key);
+				$value = $subject->$getter();
+				
+			} else {
+				throw new Exception('Key ' . $key . ' not found on object ' . get_class($subject) . '.');
+			}
+
 		} else {
-			die("Can only operate on array or object!");
+			 throw new Exception('KVC only works with objects or arrays. ' . gettype($key) . ' given.');
 		}
 
 		return $value;
