@@ -10,6 +10,12 @@ class KVC {
 	const COLLECTION_SELECTOR = "#";
 	const COLLECTION_OPERATOR = "@";
 
+	/*
+	 * --------------------------------------------
+	 * Static get and set functions for convenience.
+	 * --------------------------------------------
+	 */
+
 	public static function getValue($subject, $keyPath) {
 		$kvc = new KVC();
 		return $kvc->getValueAtKeyPath($subject, $keyPath);
@@ -20,24 +26,27 @@ class KVC {
 		return $kvc->getValuesAtKeyPath($subjects, $keyPath);
 	}
 
-	public static function set($objects, $keyPath, $value) {
-		$kvc = new KVC();
-		return $kvc->setValueAtKeyPath($objects, $keyPath, $value);
-	}
 
+	/*
+	 * --------------------------------------------
+	 * Get
+	 * --------------------------------------------
+	 */
 
 	public function getValueAtKeyPath($subject, $keyPath) {
-		return $this->getValuesAtKeyPath(array($subject), $keyPath)[0];
+		$values = $this->getValuesAtKeyPath(array($subject), $keyPath);
+		return $values[0];
 	}
 
 	public function getValuesAtKeyPath($subjects, $keyPath) {
 		$keyPathComponents = explode(".", $keyPath);
 
 		$returnValues = array();
+
 		foreach ($subjects as $subject) {
 			foreach ($keyPathComponents as $pathComponent) {
 
-				//Check if this component is an operator or selector
+				//Collection selector
 				if(substr($pathComponent, 0, 1) == self::COLLECTION_SELECTOR) {
 					$name;
 					$argument;
@@ -46,9 +55,11 @@ class KVC {
 					$collectionSelectorFunction = "_collectionSelector_" . $name;
 					$subject = $this->$collectionSelectorFunction($subject, $argument);
 
+				//Collection operator
 				} elseif(substr($pathComponent, 0, 1) == self::COLLECTION_OPERATOR) {
 					//TODO: Implement
-					//
+
+				//Regular key
 				} else {
 					$subject = $this->_getValueForKey($subject, $pathComponent);
 				}
@@ -60,58 +71,53 @@ class KVC {
 		return $returnValues;
 	}
 
-	public function setValueAtKeyPath(&$objects, $keyPath, $value) {
 
-		$subjects = array($objects);
-		$keyPathComponents = explode(".", $keyPath);
-
-		foreach ($subjects as $subject) {
-			$currentSubject =& $subject;
-
-
-			foreach ($keyPathComponents as $pathComponent) {
-				//Check if this component is an operator or selector
-				if(substr($pathComponent, 0, 1) == self::COLLECTION_SELECTOR) {
-					$name;
-					$argument;
-					$this->_parseSelectorComponent($pathComponent, $name, $argument);
-
-					$collectionSelectorFunction = "_collectionSelector_" . $name;
-					$currentSubject =& $this->$collectionSelectorFunction($currentSubject, $argument);
-
-				} elseif(substr($pathComponent, 0, 1) == self::COLLECTION_OPERATOR) {
-					//TODO: Implement
-					//
-				} else {
-					$currentSubject =& $this->_getValueForKey($currentSubject, $pathComponent);
-					var_dump($currentSubject);
-				}
-			}
-			
-			$currentSubject = $value;
-			var_dump($currentSubject);
+	/*
+	 * --------------------------------------------
+	 * Set
+	 * --------------------------------------------
+	 */
+	
+	public function setValuesAtKeyPath(&$objects, $keyPath, $value) { 
+		foreach ($objects as &$object) {
+			$this->setValueAtKeyPath($object, $keyPath, $value);
 		}
 	}
 
-	function is_ref_to(&$a, &$b)
-	{
-	    $t = $a;
-	    if($r=($b===($a=1))){ $r = ($b===($a=0)); }
-	    $a = $t;
-	    return $r;
+	public function setValueAtKeyPath(&$object, $keyPath, $value) {
+		$keyPathComponents = explode(".", $keyPath);
+
+		$currentSubject = &$object;
+
+		foreach ($keyPathComponents as $pathComponent) {
+			$new = &$this->_getValueForKey($currentSubject, $pathComponent, true);
+			unset($currentSubject);
+			$currentSubject = &$new;
+		}
+
+		$currentSubject = $value;
+
+		unset($currentSubject);
 	}
 
 
-	/**
-	 * Returns the value of key.
+	/*
+	 * --------------------------------------------
+	 * Get helper
+	 * --------------------------------------------
 	 */
-	protected function _getValueForKey($subject, $key) {
+	
+	protected function &_getValueForKey(&$subject, $key, $byRef = false) {;
 		$value = null;
 
 		//Array type
 		if(is_array($subject)) {
 			if(array_key_exists($key, $subject) ) {
-				$value = $subject[$key];
+				if($byRef) {
+					$value =& $subject[$key];
+				} else {
+					$value = $subject[$key];
+				}
 			} else {
 				throw new Exception('Key ' . $key . ' not found on array ' . $subject . '.');
 			}
@@ -121,24 +127,39 @@ class KVC {
 
 			//Variable
 			if(property_exists($subject, $key)) {
-				$value = $subject->$key;
+				if($byRef) {
+					$value =& $subject->$key;
+				} else {
+					$value = $subject->$key;
+				}
 
 			//Getter
 			} elseif(method_exists($subject, 'get' . ucfirst($key) ) ) {
 				$getter = 'get' . ucfirst($key);
-				$value = $subject->$getter();
-				
+
+				if($byRef) {
+					$value =& $subject->$getter();
+				} else {
+					$value = $subject->$getter;
+				}
+
 			} else {
 				throw new Exception('Key ' . $key . ' not found on object ' . get_class($subject) . '.');
 			}
 
 		} else {
-			 throw new Exception('KVC only works with objects or arrays. ' . gettype($key) . ' given.');
+			 throw new Exception('KVC only works with objects or arrays, ' . gettype($subject) . ' given.');
 		}
 
 		return $value;
 	}
 
+
+	/*
+	 * --------------------------------------------
+	 * Collection selectors
+	 * --------------------------------------------
+	 */
 
 	protected function _parseSelectorComponent($component, &$name, &$argument) {
 		$collectionSelector = substr($component, 1);
@@ -146,7 +167,6 @@ class KVC {
 		$name = $collectionSelectorParts[0];
 		$argument = count($collectionSelectorParts > 1) ? $collectionSelectorParts[1] : null;
 	}
-
 
 	/**
 	 * #last
