@@ -1,6 +1,7 @@
 <?php
 /**
  * Key value coding for PHP.
+ * https://github.com/wvteijlingen/PHP-KVC/
  *
  * @since 08-03-2013
  * @author Ward van Teijlingen
