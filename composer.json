@@ -1,0 +1,7 @@
+{
+    "name": "wvteijlingen/php-kvc",
+    "description": "PHP-KVC",
+    "require": {
+        "php": ">=5.3.3"
+    }
+}
