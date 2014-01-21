@@ -1,13 +1,13 @@
 PHP-KVC
 =======
 
-PHP-KVC offers a simple Key Value coding class that facilitates traversal easy of nested arrays and objects.
+PHP-KVC offers a simple Key Value coding class that facilitates easy traversalof nested arrays and objects.
 
 Basic usage
 -----------
 ###Keypaths###
 Keypaths are strings in which each path component is separated by a dot.
-The dot can represent an array key, an instance variable or a getter.
+The component can represent an array key, an instance variable or a getter.
 For example, if an object contains a getter `getFoo()`, the path component will be `foo`.
 
 
