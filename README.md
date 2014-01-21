@@ -1,7 +1,7 @@
 PHP-KVC
 =======
 
-PHP-KVC offers a simple Key Value coding class that facilitates easy traversalof nested arrays and objects.
+PHP-KVC offers a simple Key Value coding class that facilitates easy traversal of nested arrays and objects.
 
 Basic usage
 -----------
